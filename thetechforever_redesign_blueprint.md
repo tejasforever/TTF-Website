@@ -194,30 +194,70 @@ To distinguish TheTechForever as an elite software engineering agency, the desig
 
 ---
 
-## 5. Headless WordPress Backend Data Modeling
+## 5. Headless WordPress Backend Data Modeling (Powered by Secure Custom Fields - SCF)
 
-WordPress serves as the Headless CMS content engine.
+WordPress serves as the Headless CMS content engine, utilizing **Secure Custom Fields (SCF)** (`secure-custom-fields` plugin located in `E:\wamp64\www\TTF\wp-content\plugins\secure-custom-fields`) to manage structured data without database bloat.
 
-### 5.1 Custom Post Types (CPTs)
-1. **`cpt_services`** (Services Catalog)
-   - Fields: Service Name, Short Teaser, Full Description, Icon SVG, Key Features list, Deliverables, Price Tier.
-2. **`cpt_portfolio`** (Case Studies & Projects)
-   - Fields: Project Title, Client Name, Industry, Cover Image, Gallery Images, Challenge, Solution, Tech Stack Used, Live URL.
-3. **`cpt_testimonials`** (Client Reviews)
-   - Fields: Client Name, Designation, Company, Avatar, Rating (1-5), Review Quote, Verified Badge.
-4. **`cpt_faqs`** (Frequently Asked Questions)
-   - Fields: Question, Answer, Category (General, Development, Pricing, Hosting).
+### 5.1 Custom Post Types & SCF Field Groups
 
-### 5.2 WordPress REST API Endpoints Required
+1. **`services`** (Services Catalog)
+   - **SCF Field Group:** `service_metadata`
+   - **Fields:**
+     - `tagline` (Text): Punchy service tagline.
+     - `short_description` (Textarea): Brief summary for cards.
+     - `icon_name` (Text / Select): Lucide icon identifier (e.g. `Globe`, `Smartphone`, `Cloud`, `LayoutTemplate`, `Compass`, `Server`).
+     - `badge` (Text): Tag pill (e.g. `Popular`, `Enterprise`, `99.9% SLA`).
+     - `full_description` (WYSIWYG / Textarea): In-depth architectural explanation.
+     - `features` (Repeater / Textarea newline-delimited): Key capabilities bullet list.
+     - `deliverables` (Repeater / Textarea newline-delimited): Guaranteed client deliverables.
+     - `tech_stack` (Text / Tags): Comma-separated technologies used.
+     - `starting_price` (Text): Baseline pricing tier.
 
-| Resource | Endpoint | Description |
-| :--- | :--- | :--- |
-| **Pages** | `/wp-json/wp/v2/pages?slug={slug}` | Retrieve static page content and ACF fields. |
-| **Services** | `/wp-json/wp/v2/services?_embed` | Retrieve all active services with icons and details. |
-| **Portfolio** | `/wp-json/wp/v2/portfolio?_embed` | Filterable project showcase with metadata. |
-| **Posts (Blog)** | `/wp-json/wp/v2/posts?_embed&page={n}` | Paginated tech blog posts with featured images. |
-| **Testimonials** | `/wp-json/wp/v2/testimonials` | Client reviews and verification data. |
-| **Inquiries** | `/wp-json/ttf/v1/inquiry` (Custom Endpoint) | Secure POST endpoint to receive contact form leads. |
+2. **`portfolio`** (Case Studies & Client Projects)
+   - **SCF Field Group:** `portfolio_metadata`
+   - **Fields:**
+     - `client_name` (Text): Client or company name.
+     - `category` (Text): Display category (e.g. `Web Applications`, `Mobile Apps`, `Headless CMS`).
+     - `category_slug` (Select): Filter key (`web`, `mobile`, `cms`, `cloud`).
+     - `summary` (Textarea): Executive problem/outcome summary.
+     - `challenge` (Textarea): The client's original engineering bottleneck.
+     - `solution` (Textarea): TheTechForever architecture & implementation.
+     - `metrics` (Repeater / Textarea): Quantifiable business impact metrics (e.g. `+74% Faster Page Speed`).
+     - `tags` (Text): Comma-separated tech stack used.
+     - `featured` (True/False): Toggle for homepage showcase.
+     - `live_url` (URL): Direct project URL.
+
+3. **`testimonials`** (Client Reviews)
+   - **SCF Field Group:** `testimonial_metadata`
+   - **Fields:**
+     - `client_name` (Text): Full reviewer name.
+     - `role` (Text): Designation / Title.
+     - `company` (Text): Client company name.
+     - `rating` (Number 1-5): Star rating.
+     - `quote` (Textarea): Review text.
+     - `avatar_initials` (Text): Fallback monogram.
+
+4. **`faqs`** (Technical & Collaboration FAQs)
+   - **SCF Field Group:** `faq_metadata`
+   - **Fields:**
+     - `question` (Text): FAQ question.
+     - `answer` (Textarea): Detailed answer.
+     - `category` (Select): `Architecture`, `Process`, `Migration`, `Support`.
+
+### 5.2 Secure Custom Fields (SCF) REST API Exposure
+
+In `wordpress-integration/ttf-headless-core.php`, all SCF fields are automatically exposed on REST API responses via `register_rest_field()` under the `scf` key (with `acf` alias for backward compatibility):
+
+```php
+// Automatically attached to /wp-json/wp/v2/services, portfolio, posts, testimonials
+register_rest_field($cpt, 'scf', array(
+    'get_callback' => function($post_arr) {
+        return function_exists('get_fields') ? get_fields($post_arr['id']) : get_post_meta($post_arr['id']);
+    }
+));
+```
+
+The React frontend (`src/api/wordpress.js`) parses `item.scf || item.acf || {}` directly, falling back gracefully to `src/data/mockData.js` during local offline testing.
 
 ---
 
