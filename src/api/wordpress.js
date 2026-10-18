@@ -371,7 +371,25 @@ export const api = {
       const res = await fetch(`${WP_BASE_URL}/wp/v2/services?_embed`, { signal: AbortSignal.timeout(2500) });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) return data;
+        if (Array.isArray(data) && data.length > 0) {
+          return data.map(item => {
+            const scf = item.scf || item.acf || {};
+            return {
+              id: item.id,
+              slug: item.slug,
+              title: item.title?.rendered || item.title,
+              tagline: scf.tagline || item.excerpt?.rendered?.replace(/<[^>]+>/g, '') || '',
+              shortDesc: scf.short_description || item.excerpt?.rendered?.replace(/<[^>]+>/g, '') || '',
+              iconName: scf.icon_name || 'Globe',
+              badge: scf.badge || '',
+              fullDesc: item.content?.rendered || scf.full_description || '',
+              features: scf.features ? (Array.isArray(scf.features) ? scf.features : scf.features.split('\n')) : [],
+              deliverables: scf.deliverables ? (Array.isArray(scf.deliverables) ? scf.deliverables : scf.deliverables.split('\n')) : [],
+              techStack: scf.tech_stack ? (Array.isArray(scf.tech_stack) ? scf.tech_stack : scf.tech_stack.split(',')) : ['React', 'Node.js', 'WordPress'],
+              startingPrice: scf.starting_price || 'Custom Scope'
+            };
+          });
+        }
       }
     } catch (e) {}
     return MOCK_SERVICES;
@@ -387,7 +405,28 @@ export const api = {
       const res = await fetch(`${WP_BASE_URL}/wp/v2/portfolio?_embed`, { signal: AbortSignal.timeout(2500) });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) return data;
+        if (Array.isArray(data) && data.length > 0) {
+          return data.map(item => {
+            const scf = item.scf || item.acf || {};
+            const featuredImg = item._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+            return {
+              id: item.id,
+              slug: item.slug,
+              title: item.title?.rendered || item.title,
+              category: scf.category || 'Web Applications',
+              categorySlug: scf.category_slug || 'web',
+              client: scf.client_name || 'Enterprise Partner',
+              summary: item.excerpt?.rendered?.replace(/<[^>]+>/g, '') || scf.summary || '',
+              challenge: scf.challenge || '',
+              solution: scf.solution || '',
+              metrics: scf.metrics ? (Array.isArray(scf.metrics) ? scf.metrics : scf.metrics.split('\n')) : [],
+              tags: scf.tags ? (Array.isArray(scf.tags) ? scf.tags : scf.tags.split(',')) : ['React', 'Headless WP'],
+              featured: scf.featured === true || scf.featured === '1',
+              image: featuredImg || scf.image || '/portfolio-lms.jpg',
+              liveUrl: scf.live_url || 'https://thetechforever.com'
+            };
+          });
+        }
       }
     } catch (e) {}
     return MOCK_PORTFOLIO;
@@ -403,7 +442,24 @@ export const api = {
       const res = await fetch(`${WP_BASE_URL}/wp/v2/posts?_embed`, { signal: AbortSignal.timeout(2500) });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) return data;
+        if (Array.isArray(data) && data.length > 0) {
+          return data.map(post => {
+            const scf = post.scf || post.acf || {};
+            const featuredImg = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+            return {
+              id: post.id,
+              slug: post.slug,
+              title: post.title?.rendered || post.title,
+              excerpt: post.excerpt?.rendered?.replace(/<[^>]+>/g, '') || post.excerpt,
+              content: post.content?.rendered || post.content,
+              category: post._embedded?.['wp:term']?.[0]?.[0]?.name || scf.category || 'Architecture',
+              author: post._embedded?.author?.[0]?.name || 'TTF Engineering Team',
+              date: new Date(post.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+              readTime: scf.read_time || '5 min read',
+              coverImage: featuredImg || scf.cover_image || '/blog-headless.jpg'
+            };
+          });
+        }
       }
     } catch (e) {}
     return MOCK_BLOG_POSTS;
@@ -415,10 +471,47 @@ export const api = {
   },
 
   async getTestimonials() {
+    try {
+      const res = await fetch(`${WP_BASE_URL}/wp/v2/testimonials?_embed`, { signal: AbortSignal.timeout(2500) });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          return data.map(item => {
+            const scf = item.scf || item.acf || {};
+            return {
+              id: item.id,
+              name: item.title?.rendered || scf.client_name,
+              role: scf.role || 'Client',
+              company: scf.company || '',
+              quote: item.content?.rendered?.replace(/<[^>]+>/g, '') || scf.quote,
+              rating: parseInt(scf.rating, 10) || 5,
+              avatar: scf.avatar_initials || (item.title?.rendered ? item.title.rendered.substring(0, 2).toUpperCase() : 'TT')
+            };
+          });
+        }
+      }
+    } catch (e) {}
     return MOCK_TESTIMONIALS;
   },
 
   async getFAQs() {
+    try {
+      const res = await fetch(`${WP_BASE_URL}/wp/v2/faqs?_embed`, { signal: AbortSignal.timeout(2500) });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          return data.map(item => {
+            const scf = item.scf || item.acf || {};
+            return {
+              id: item.id,
+              q: item.title?.rendered || scf.question,
+              a: item.content?.rendered?.replace(/<[^>]+>/g, '') || scf.answer,
+              category: scf.category || 'General'
+            };
+          });
+        }
+      }
+    } catch (e) {}
     return MOCK_FAQS;
   },
 
